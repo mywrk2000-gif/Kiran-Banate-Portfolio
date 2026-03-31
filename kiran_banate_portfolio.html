@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiran Banate – Video Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --accent: #38bdf8;
+    --accent2: #0ea5e9;
+    --text: #e8e4dc;
+    --muted: #6a6a6a;
+    --border: #222;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  .cursor {
+    width: 10px; height: 10px;
+    background: #38bdf8;
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1.5px solid #38bdf8;
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9998;
+    transition: width 0.2s, height 0.2s;
+    mix-blend-mode: difference;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 48px;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  nav.scrolled {
+    background: rgba(10,10,10,0.88);
+    backdrop-filter: blur(14px);
+    border-color: var(--border);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 3px; color: var(--text);
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 36px; list-style: none; }
+  .nav-links a {
+    text-decoration: none; font-size: 12px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    padding: 120px 48px 80px;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 50%, rgba(56,189,248,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(14,165,233,0.05) 0%, transparent 60%);
+  }
+  .film-strip {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: 180px; display: flex; flex-direction: column;
+    gap: 0; opacity: 0.07;
+  }
+  .film-frame {
+    flex: 1; border: 2px solid var(--text);
+    border-top: none; position: relative;
+  }
+  .film-frame::before, .film-frame::after {
+    content: ''; position: absolute;
+    top: 50%; transform: translateY(-50%);
+    width: 14px; height: 20px;
+    background: var(--text); border-radius: 2px;
+  }
+  .film-frame::before { left: -20px; }
+  .film-frame::after { right: -20px; }
+
+  .hero-content { position: relative; z-index: 2; max-width: 800px; }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 28px;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+  .hero-tag::before {
+    content: ''; display: block; width: 40px; height: 1px; background: var(--accent);
+  }
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 10vw, 140px);
+    line-height: 0.9; letter-spacing: -1px; margin-bottom: 32px;
+    animation: fadeUp 0.9s ease 0.4s both;
+  }
+  h1 em { font-style: normal; -webkit-text-stroke: 1px var(--text); color: transparent; }
+  .hero-desc {
+    font-size: 16px; line-height: 1.8; color: var(--muted);
+    max-width: 440px; margin-bottom: 48px;
+    animation: fadeUp 0.9s ease 0.6s both;
+  }
+  .hero-cta { display: flex; gap: 20px; align-items: center; animation: fadeUp 0.9s ease 0.75s both; }
+  .btn-primary {
+    display: inline-block; padding: 14px 36px;
+    background: var(--accent); color: #0a0a0a;
+    text-decoration: none; font-size: 11px; font-weight: 500;
+    letter-spacing: 2px; text-transform: uppercase;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(56,189,248,0.25); }
+  .btn-ghost {
+    font-size: 12px; letter-spacing: 1px; color: var(--muted);
+    text-decoration: none; border-bottom: 1px solid var(--border);
+    padding-bottom: 2px; transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+
+  .scroll-indicator {
+    position: absolute; bottom: 48px; left: 48px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  }
+  .scroll-line { width: 40px; height: 1px; background: var(--muted); position: relative; overflow: hidden; }
+  .scroll-line::after {
+    content: ''; position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%; background: var(--accent);
+    animation: scrollLine 2s ease-in-out infinite;
+  }
+  @keyframes scrollLine { 0%{left:-100%} 100%{left:100%} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+
+  section { padding: 120px 48px; }
+  .section-label {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 64px;
+  }
+  .section-label::after { content: ''; flex: 1; max-width: 80px; height: 1px; background: var(--accent); }
+  h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 6vw, 88px); line-height: 0.95; margin-bottom: 48px;
+  }
+
+  /* ABOUT */
+  .about { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+  .about-visual {
+    position: relative; aspect-ratio: 4/5;
+    background: var(--surface2); overflow: hidden;
+  }
+  .about-visual::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(56,189,248,0.1) 0%, transparent 60%, rgba(14,165,233,0.06) 100%);
+  }
+  .about-visual-inner {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 12px;
+  }
+  .play-icon {
+    width: 72px; height: 72px;
+    border: 1.5px solid rgba(56,189,248,0.4);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 24px; transition: all 0.3s;
+  }
+  .about-visual:hover .play-icon { background: var(--accent); color: #000; border-color: var(--accent); }
+  .about-visual-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .about-frame-corners::before, .about-frame-corners::after {
+    content: ''; position: absolute;
+    width: 24px; height: 24px; border-color: var(--accent); border-style: solid; opacity: 0.5;
+  }
+  .about-frame-corners::before { top: 16px; left: 16px; border-width: 1.5px 0 0 1.5px; }
+  .about-frame-corners::after { bottom: 16px; right: 16px; border-width: 0 1.5px 1.5px 0; }
+
+  .about-text p { font-size: 16px; line-height: 1.9; color: #aaa; margin-bottom: 20px; }
+  .about-stats {
+    display: flex; gap: 40px; margin-top: 40px;
+    padding-top: 40px; border-top: 1px solid var(--border);
+  }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: var(--accent); line-height: 1; }
+  .stat-label { font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+
+  /* REELS WORK */
+  .work-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .reel-card {
+    position: relative; aspect-ratio: 9/16;
+    background: var(--surface2); overflow: hidden;
+    border-radius: 4px; cursor: none;
+  }
+  .reel-bg {
+    position: absolute; inset: 0;
+    transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+  .reel-card:hover .reel-bg { transform: scale(1.06); }
+  .reel-bg-1 { background: linear-gradient(160deg, #050e1a 0%, #0a2a3a 40%, #051220 100%); }
+  .reel-bg-2 { background: linear-gradient(160deg, #0d0a1a 0%, #1a0d30 40%, #080a20 100%); }
+  .reel-bg-3 { background: linear-gradient(160deg, #0a1a10 0%, #0d2a18 40%, #051410 100%); }
+  .reel-bg-4 { background: linear-gradient(160deg, #1a0d08 0%, #2a1508 40%, #150a05 100%); }
+  .reel-bg-5 { background: linear-gradient(160deg, #0a0a1a 0%, #15103a 40%, #080814 100%); }
+  .reel-bg-6 { background: linear-gradient(160deg, #1a0808 0%, #2e1010 40%, #120505 100%); }
+
+  .reel-lines {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: center; gap: 6px; padding: 16px; opacity: 0.15;
+  }
+  .reel-line-bar { height: 2px; border-radius: 1px; background: var(--text); }
+
+  .reel-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 16px;
+  }
+  .reel-top { display: flex; justify-content: flex-end; }
+  .reel-ig-badge {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+  .reel-ig-icon { font-size: 11px; }
+  .reel-cat {
+    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 6px;
+  }
+  .reel-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+    letter-spacing: 1px; line-height: 1.1; margin-bottom: 6px;
+  }
+  .reel-desc { font-size: 10px; color: var(--muted); line-height: 1.5; }
+  .reel-play {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 48px; height: 48px;
+    border: 1.5px solid rgba(56,189,248,0.5);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s, background 0.3s; font-size: 14px; color: #fff;
+  }
+  .reel-card:hover .reel-play { opacity: 1; background: rgba(56,189,248,0.15); }
+  .reel-num {
+    position: absolute; top: 12px; left: 12px;
+    font-family: 'Bebas Neue', sans-serif; font-size: 12px;
+    letter-spacing: 2px; color: rgba(255,255,255,0.12);
+  }
+
+  /* SKILLS */
+  .skills { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .skills-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 80px; }
+  .skills-intro p { font-size: 15px; line-height: 1.8; color: var(--muted); }
+  .skills-grid { display: flex; flex-direction: column; gap: 32px; }
+  .skill-row { display: flex; flex-direction: column; gap: 10px; }
+  .skill-meta { display: flex; justify-content: space-between; align-items: baseline; }
+  .skill-name { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .skill-pct { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
+  .skill-bar { height: 2px; background: var(--border); position: relative; overflow: hidden; }
+  .skill-fill {
+    position: absolute; top: 0; left: 0; height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    width: 0; transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+  }
+  .skill-fill.animated { width: var(--w); }
+
+  /* CONTACT */
+  .contact-inner { max-width: 700px; margin: 0 auto; text-align: center; }
+  .contact-inner h2 { font-size: clamp(56px, 8vw, 110px); }
+  .contact-inner p { font-size: 16px; line-height: 1.8; color: var(--muted); margin-bottom: 48px; }
+  .contact-links { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+  .contact-link {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--text);
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    border: 1px solid var(--border); padding: 14px 24px;
+    transition: all 0.3s;
+  }
+  .contact-link:hover { border-color: var(--accent); color: var(--accent); }
+  .contact-link svg { width: 16px; height: 16px; }
+
+  footer {
+    padding: 32px 48px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--muted); letter-spacing: 1px;
+  }
+
+  .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+  .fade-up.delay-1 { transition-delay: 0.1s; }
+  .fade-up.delay-2 { transition-delay: 0.2s; }
+  .fade-up.delay-3 { transition-delay: 0.35s; }
+
+  @media (max-width: 768px) {
+    nav { padding: 20px 24px; }
+    section { padding: 80px 24px; }
+    .hero { padding: 100px 24px 60px; }
+    .about-grid, .skills-layout { grid-template-columns: 1fr; }
+    .work-grid { grid-template-columns: repeat(2, 1fr); }
+    .scroll-indicator { display: none; }
+    .nav-links { gap: 20px; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">KIRAN<span>.</span>EDIT</div>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#work">Reels</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="film-strip">
+    <div class="film-frame"></div><div class="film-frame"></div>
+    <div class="film-frame"></div><div class="film-frame"></div>
+    <div class="film-frame"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-tag">Instagram Reels · Video Editor</div>
+    <h1>Kiran<br>Banate<br><em>Edits.</em></h1>
+    <p class="hero-desc">I craft scroll-stopping Instagram Reels and cinematic edits that don't just look good — they make people stop, watch, and share.</p>
+    <div class="hero-cta">
+      <a href="#work" class="btn-primary">Watch My Reels</a>
+      <a href="#contact" class="btn-ghost">Let's Work Together</a>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="scroll-line"></div>
+    Scroll
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="section-label fade-up">01 — About Me</div>
+  <div class="about-grid">
+    <div class="about-visual about-frame-corners fade-up">
+      <div class="about-visual-inner">
+        <div class="play-icon">▶</div>
+        <div class="about-visual-label">Best of Reels 2024</div>
+      </div>
+    </div>
+    <div class="about-text">
+      <h2 class="fade-up">Every<br>Frame<br>Matters.</h2>
+      <p class="fade-up delay-1">Hey, I'm Kiran Banate — a video editor specialising in Instagram Reels, short-form content, and cinematic storytelling. I turn raw footage into content that performs.</p>
+      <p class="fade-up delay-2">From trending audio sync to smooth transitions and colour grading, I bring energy, rhythm, and a sharp eye to every project I touch.</p>
+      <div class="about-stats fade-up delay-3">
+        <div>
+          <div class="stat-num">3+</div>
+          <div class="stat-label">Years Editing</div>
+        </div>
+        <div>
+          <div class="stat-num">50+</div>
+          <div class="stat-label">Reels Created</div>
+        </div>
+        <div>
+          <div class="stat-num">∞</div>
+          <div class="stat-label">Passion for Cuts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORK / REELS -->
+<section id="work" style="padding: 120px 48px;">
+  <div class="section-label fade-up">02 — Instagram Reels</div>
+  <h2 class="fade-up">Recent<br>Reels</h2>
+  <div class="work-grid fade-up">
+
+    <div class="reel-card">
+      <div class="reel-bg reel-bg-1"></div>
+      <div class="reel-lines">
+        <div class="reel-line-bar" style="width:80%"></div><div class="reel-line-bar" style="width:60%"></div>
+        <div class="reel-line-bar" style="width:90%"></div><div class="reel-line-bar" style="width:50%"></div>
+      </div>
+      <div class="reel-num">01</div>
+      <div class="reel-play">▶</div>
+      <div class="reel-overlay">
+        <div class="reel-top"><div class="reel-ig-badge"><span class="reel-ig-icon">📱</span> Reel</div></div>
+        <div class="reel-bottom">
+          <div class="reel-cat">Travel & Lifestyle</div>
+          <div class="reel-title">Cinematic Travel Montage</div>
+          <div class="reel-desc">Fast cuts, smooth transitions & colour grade for a travel creator.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reel-card">
+      <div class="reel-bg reel-bg-2"></div>
+      <div class="reel-lines">
+        <div class="reel-line-bar" style="width:70%"></div><div class="reel-line-bar" style="width:85%"></div>
+        <div class="reel-line-bar" style="width:55%"></div><div class="reel-line-bar" style="width:75%"></div>
+      </div>
+      <div class="reel-num">02</div>
+      <div class="reel-play">▶</div>
+      <div class="reel-overlay">
+        <div class="reel-top"><div class="reel-ig-badge"><span class="reel-ig-icon">📱</span> Reel</div></div>
+        <div class="reel-bottom">
+          <div class="reel-cat">Music Sync Edit</div>
+          <div class="reel-title">Beat-Drop Transition Reel</div>
+          <div class="reel-desc">Beat-synced cuts with motion blur transitions on trending audio.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reel-card">
+      <div class="reel-bg reel-bg-3"></div>
+      <div class="reel-lines">
+        <div class="reel-line-bar" style="width:65%"></div><div class="reel-line-bar" style="width:90%"></div>
+        <div class="reel-line-bar" style="width:70%"></div><div class="reel-line-bar" style="width:45%"></div>
+      </div>
+      <div class="reel-num">03</div>
+      <div class="reel-play">▶</div>
+      <div class="reel-overlay">
+        <div class="reel-top"><div class="reel-ig-badge"><span class="reel-ig-icon">📱</span> Reel</div></div>
+        <div class="reel-bottom">
+          <div class="reel-cat">Brand Promo</div>
+          <div class="reel-title">Product Launch Reel</div>
+          <div class="reel-desc">Slick product edit with dynamic text overlays and moody grade.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reel-card">
+      <div class="reel-bg reel-bg-4"></div>
+      <div class="reel-lines">
+        <div class="reel-line-bar" style="width:80%"></div><div class="reel-line-bar" style="width:50%"></div>
+        <div class="reel-line-bar" style="width:95%"></div><div class="reel-line-bar" style="width:60%"></div>
+      </div>
+      <div class="reel-num">04</div>
+      <div class="reel-play">▶</div>
+      <div class="reel-overlay">
+        <div class="reel-top"><div class="reel-ig-badge"><span class="reel-ig-icon">📱</span> Reel</div></div>
+        <div class="reel-bottom">
+          <div class="reel-cat">Fashion & Style</div>
+          <div class="reel-title">OOTD Fashion Reel</div>
+          <div class="reel-desc">Trendy outfit transitions with stylised grain and warm grade.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reel-card">
+      <div class="reel-bg reel-bg-5"></div>
+      <div class="reel-lines">
+        <div class="reel-line-bar" style="width:75%"></div><div class="reel-line-bar" style="width:60%"></div>
+        <div class="reel-line-bar" style="width:85%"></div><div class="reel-line-bar" style="width:55%"></div>
+      </div>
+      <div class="reel-num">05</div>
+      <div class="reel-play">▶</div>
+      <div class="reel-overlay">
+        <div class="reel-top"><div class="reel-ig-badge"><span class="reel-ig-icon">📱</span> Reel</div></div>
+        <div class="reel-bottom">
+          <div class="reel-cat">Motivational</div>
+          <div class="reel-title">Motivational Edit</div>
+          <div class="reel-desc">Energetic cuts + voiceover sync for a fitness & mindset creator.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reel-card">
+      <div class="reel-bg reel-bg-6"></div>
+      <div class="reel-lines">
+        <div class="reel-line-bar" style="width:90%"></div><div class="reel-line-bar" style="width:55%"></div>
+        <div class="reel-line-bar" style="width:70%"></div><div class="reel-line-bar" style="width:80%"></div>
+      </div>
+      <div class="reel-num">06</div>
+      <div class="reel-play">▶</div>
+      <div class="reel-overlay">
+        <div class="reel-top"><div class="reel-ig-badge"><span class="reel-ig-icon">📱</span> Reel</div></div>
+        <div class="reel-bottom">
+          <div class="reel-cat">Food & Lifestyle</div>
+          <div class="reel-title">Aesthetic Food Reel</div>
+          <div class="reel-desc">Slow-mo pouring shots with a rich, saturated colour treatment.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section class="skills" id="skills">
+  <div class="section-label fade-up">03 — Skills & Tools</div>
+  <div class="skills-layout">
+    <div class="skills-intro">
+      <h2 class="fade-up">My<br>Toolkit</h2>
+      <p class="fade-up delay-1">Tools and techniques I use every day to craft high-performing Reels and short-form content that stands out in the feed.</p>
+    </div>
+    <div class="skills-grid">
+      <div class="skill-row fade-up">
+        <div class="skill-meta"><span class="skill-name">Adobe Premiere Pro</span><span class="skill-pct">95</span></div>
+        <div class="skill-bar"><div class="skill-fill" style="--w:95%"></div></div>
+      </div>
+      <div class="skill-row fade-up delay-1">
+        <div class="skill-meta"><span class="skill-name">CapCut</span><span class="skill-pct">92</span></div>
+        <div class="skill-bar"><div class="skill-fill" style="--w:92%"></div></div>
+      </div>
+      <div class="skill-row fade-up delay-2">
+        <div class="skill-meta"><span class="skill-name">After Effects</span><span class="skill-pct">80</span></div>
+        <div class="skill-bar"><div class="skill-fill" style="--w:80%"></div></div>
+      </div>
+      <div class="skill-row fade-up delay-3">
+        <div class="skill-meta"><span class="skill-name">Colour Grading</span><span class="skill-pct">88</span></div>
+        <div class="skill-bar"><div class="skill-fill" style="--w:88%"></div></div>
+      </div>
+      <div class="skill-row fade-up">
+        <div class="skill-meta"><span class="skill-name">Beat Sync & Audio Editing</span><span class="skill-pct">90</span></div>
+        <div class="skill-bar"><div class="skill-fill" style="--w:90%"></div></div>
+      </div>
+      <div class="skill-row fade-up delay-1">
+        <div class="skill-meta"><span class="skill-name">Transitions & Motion FX</span><span class="skill-pct">85</span></div>
+        <div class="skill-bar"><div class="skill-fill" style="--w:85%"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="contact-inner">
+    <div class="section-label fade-up" style="justify-content:center">04 — Contact</div>
+    <h2 class="fade-up">Let's<br>Create<br>Together.</h2>
+    <p class="fade-up delay-1">Have a project, collab, or content idea? I'm open to freelance Reels editing and short-form video projects. Let's make something great.</p>
+    <div class="contact-links fade-up delay-2">
+      <a href="https://www.instagram.com/" target="_blank" class="contact-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+        Instagram
+      </a>
+      <a href="https://www.linkedin.com/in/kiran-banate-43468336a" target="_blank" class="contact-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+        LinkedIn
+      </a>
+      <a href="mailto:kiranbanate@gmail.com" class="contact-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l9 6 9-6M3 8v10a1 1 0 001 1h16a1 1 0 001-1V8M3 8a1 1 0 011-1h16a1 1 0 011 1"/></svg>
+        Email Me
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>© 2025 Kiran Banate. All rights reserved.</span>
+  <span>Video Editor · Reels Specialist</span>
+</footer>
+
+<script>
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.transform = `translate(${mx - 5}px, ${my - 5}px)`;
+  });
+
+  function animateRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.transform = `translate(${rx - 18}px, ${ry - 18}px)`;
+    requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  document.querySelectorAll('a, .reel-card, .about-visual').forEach(el => {
+    el.addEventListener('mouseenter', () => { ring.style.width = '60px'; ring.style.height = '60px'; });
+    el.addEventListener('mouseleave', () => { ring.style.width = '36px'; ring.style.height = '36px'; });
+  });
+
+  window.addEventListener('scroll', () => {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        if (entry.target.classList.contains('skill-fill')) entry.target.classList.add('animated');
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  document.querySelectorAll('.skill-fill').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
